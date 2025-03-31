@@ -13,9 +13,20 @@ import time
 import arm.config.config as cfg
 
 
-def setup_logging(job):
-    """Setup logging and return the path to the logfile for
-    redirection of external calls\n
+short_format = (
+    "%(levelname)s:"
+    + (" %(module)s.%(funcName)s:" if cfg.arm_config["LOGLEVEL"] == "DEBUG" else "")
+    + " %(message)s"
+)
+long_format = f"%(asctime)s ARM: {short_format}"
+
+short_formatter = logging.Formatter(short_format, datefmt=cfg.arm_config["DATE_FORMAT"])
+long_formatter = logging.Formatter(long_format, datefmt=cfg.arm_config["DATE_FORMAT"])
+
+
+def setup_job_log(job):
+    """
+    Setup logging and return the path to the logfile for redirection of external calls
     We need to return the full logfile path but set the job.logfile to just the filename
     """
     # This isn't catching all of them
@@ -34,19 +45,13 @@ def setup_logging(job):
         log_file = new_log_file if os.path.isfile(temp_log_full) else log_file_name
         log_full = os.path.join(cfg.arm_config['LOGPATH'], log_file)
         job.logfile = log_file
-    # Remove loggers writing to other files, if any
+
     logger = logging.getLogger()
     for handler in logger.handlers:
         if isinstance(handler, logging.FileHandler):
             logger.removeHandler(handler)
-    # Debug formatting
-    if cfg.arm_config['LOGLEVEL'] == "DEBUG":
-        logging.basicConfig(filename=log_full,
-                            format='[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s',
-                            datefmt=cfg.arm_config['DATE_FORMAT'], level=cfg.arm_config['LOGLEVEL'])
-    else:
-        logging.basicConfig(filename=log_full, format='[%(asctime)s] %(levelname)s ARM: %(message)s',
-                            datefmt=cfg.arm_config['DATE_FORMAT'], level=cfg.arm_config['LOGLEVEL'])
+
+    logger.addHandler(_create_file_handler(log_file))
 
     # These stop apprise and others spitting our secret keys if users post log online
     logging.getLogger("apprise").setLevel(logging.WARN)
@@ -84,11 +89,17 @@ def clean_up_logs(logpath, loglife):
     return True
 
 
-def create_logger(app_name, log_level=logging.DEBUG, stdout=True, syslog=False, file=False):
+def _create_file_handler(filename):
+    file_handler = logging.FileHandler(os.path.join(cfg.arm_config["LOGPATH"], filename))
+    file_handler.setFormatter(long_formatter)
+    return file_handler
+
+
+def create_early_logger(stdout=True, syslog=True, file=True):
     """
-    From: https://gist.github.com/danielkraic/a1657f19bad9c158cbf9532e1ed1503b\n
-    Create logging object with logging to syslog, file and stdout\n
-    Will log to `/var/log/arm.log`\n
+    From: https://gist.github.com/danielkraic/a1657f19bad9c158cbf9532e1ed1503b
+    Create logging object with logging to syslog, file and stdout
+    Will log to `/var/log/arm.log`
     :param app_name: app name
     :param log_level: logging log level
     :param stdout: log to stdout
@@ -101,32 +112,22 @@ def create_logger(app_name, log_level=logging.DEBUG, stdout=True, syslog=False, 
     # logging.getLogger("urllib3").setLevel(logging.ERROR)
 
     # create logger
-    logger = logging.getLogger(app_name)
-    logger.setLevel(log_level)
-
-    # set log format to handlers
-    formatter = logging.Formatter('[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s')
+    logger = logging.getLogger("ARM")
+    logger.setLevel(cfg.arm_config["LOGLEVEL"])
 
     if file:
-        # create file logger handler
-        file_handler = logging.FileHandler(os.path.join(cfg.arm_config['LOGPATH'], 'arm.log'))
-        file_handler.setLevel(log_level)
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
+        logger.addHandler(_create_file_handler("arm.log"))
 
     if syslog:
         # create syslog logger handler
         stream_handler = logging.handlers.SysLogHandler(address='/dev/log')
-        stream_handler.setLevel(log_level)
-        stream_file = logging.Formatter('%(name)s: %(message)s')
-        stream_handler.setFormatter(stream_file)
+        stream_handler.setFormatter(short_formatter)
         logger.addHandler(stream_handler)
 
     if stdout:
         # create stream logger handler
         stream_print = logging.StreamHandler()
-        stream_print.setLevel(log_level)
-        stream_print.setFormatter(formatter)
+        stream_print.setFormatter(short_formatter)
         logger.addHandler(stream_print)
 
     return logger
