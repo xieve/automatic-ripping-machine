@@ -146,7 +146,7 @@ def main(logfile, job):
 if __name__ == "__main__":
     # Setup base logger - will log to <log directory>/arm.log, syslog & stdout
     # This will catch any permission errors
-    arm_log = logger.create_logger("ARM", logging.DEBUG, True, True, True)
+    arm_log = logger.create_early_logger()
     # Make sure all directories are fully setup
     utils.arm_setup(arm_log)
     # Get arguments from arg parser
@@ -175,7 +175,7 @@ if __name__ == "__main__":
     # Create new job
     job = Job(devpath)
     # Setup logging
-    log_file = logger.setup_logging(job)
+    log_file = logger.setup_job_log(job)
 
     # Don't put out anything if we are using the empty.log NAS_[0-9].log or NAS1_[0-9].log
     if log_file.find("empty.log") != -1 or re.search(r"(NAS|NAS1)_\d+\.log", log_file) is not None:
