@@ -10,6 +10,7 @@ from time import sleep
 
 from arm.models.track import Track
 from arm.ripper import utils  # noqa: E402
+from arm.ripper.ProcessHandler import arm_subprocess
 from arm.ui import db  # noqa: F401, E402
 import arm.config.config as cfg  # noqa E402
 from arm.ripper.utils import notify
@@ -47,12 +48,12 @@ def makemkv(logfile, job):
     # get MakeMKV disc number
     logging.debug("Getting MakeMKV disc number")
     cmd = f"makemkvcon -r info disc:9999 | grep {job.devpath} | grep -oP '(?<=:).*?(?=,)'"
-    logging.debug(f"Using command: {cmd}")
     try:
-        mdisc = subprocess.check_output(
+        mdisc = arm_subprocess(
             cmd,
-            shell=True
-        ).decode("utf-8")
+            in_shell=True,
+            check=True,
+        )
         logging.info(f"MakeMKV disc number: {mdisc.strip()}")
         logging.debug(f"Disk raw number: {mdisc}")
     except subprocess.CalledProcessError as mdisc_error:
@@ -210,21 +211,19 @@ def prep_mkv(logfile):
     Raises:
         RuntimeError
     """
+    logging.info("Updating MakeMKV key...")
+    update_cmd = os.path.join(cfg.arm_config["INSTALLPATH"], "scripts/update_key.sh")
+
+    # if MAKEMKV_PERMA_KEY is populated
+    if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
+        logging.debug("MAKEMKV_PERMA_KEY populated, using that...")
+        # add MAKEMKV_PERMA_KEY as an argument to the command
+        update_cmd = f"{update_cmd} {cfg.arm_config['MAKEMKV_PERMA_KEY']}"
+
     try:
-        logging.info("Updating MakeMKV key...")
-        update_cmd = os.path.join(cfg.arm_config["INSTALLPATH"], "scripts/update_key.sh")
-
-        # if MAKEMKV_PERMA_KEY is populated
-        if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
-            logging.debug("MAKEMKV_PERMA_KEY populated, using that...")
-            # add MAKEMKV_PERMA_KEY as an argument to the command
-            update_cmd = f"{update_cmd} {cfg.arm_config['MAKEMKV_PERMA_KEY']}"
-
-        subprocess.run(f"{update_cmd} >> {logfile}", capture_output=True, shell=True, check=True)
+        arm_subprocess(f"{update_cmd}", in_shell=True)
     except subprocess.CalledProcessError as update_err:
-        err = f"Error updating MakeMKV key, return code: {update_err.returncode}"
-        logging.error(err)
-        raise RuntimeError(err) from update_err
+        raise RuntimeError("Error updating MakeMKV key") from update_err
 
 
 def get_track_info(mdisc, job):
@@ -244,13 +243,12 @@ def get_track_info(mdisc, job):
     cmd = f'makemkvcon -r --progress={os.path.join(job.config.LOGPATH, "progress", str(job.job_id))}.log ' \
           f'--messages=-stdout --minlength={job.config.MINLENGTH} ' \
           f'--cache=1 info disc:{mdisc}'
-    logging.debug(f"Sending command: {cmd}")
     try:
-        mkv = subprocess.check_output(
+        mkv = arm_subprocess(
             cmd,
-            stderr=subprocess.STDOUT,
-            shell=True
-        ).decode("utf-8").splitlines()
+            in_shell=True,
+            check=True,
+        ).splitlines()
     except subprocess.CalledProcessError as mdisc_error:
         raise MakeMkvRuntimeError(mdisc_error) from mdisc_error
 
@@ -356,10 +354,9 @@ def run_makemkv(cmd, logfile):
         MakeMkvRuntimeError
     """
 
-    logging.debug(f"Ripping with the following command: {cmd}")
     try:
         # need to check output for '0 titles saved'
-        subprocess.run(f"{cmd} >> {logfile}", capture_output=True, shell=True, check=True)
+        arm_subprocess(f"{cmd}", in_shell=True, check=True)
     except subprocess.CalledProcessError as mkv_error:
         raise MakeMkvRuntimeError(mkv_error) from mkv_error
 
