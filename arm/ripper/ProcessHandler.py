@@ -15,7 +15,7 @@ def arm_subprocess(cmd, in_shell, check=False):
         arm_process = subprocess.check_output(
             cmd,
             shell=in_shell
-        )
+        ).decode("utf-8")
     except subprocess.CalledProcessError as error:
         logging.error(f"Error executing command `{cmd}`: {error}")
         if check:
