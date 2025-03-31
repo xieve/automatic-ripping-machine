@@ -21,9 +21,9 @@ from time import sleep
 from arm.models import Track, SystemDrives
 from arm.models.job import JobState
 from arm.ripper import utils
+from arm.ripper.ProcessHandler import arm_subprocess
 from arm.ui import db
 import arm.config.config as cfg
-
 from arm.ripper.utils import notify
 
 
@@ -814,20 +814,19 @@ def prep_mkv():
     Raises:
         MakeMkvRuntimeError
     """
+    logging.info("Updating MakeMKV key...")
+    cmd = [os.path.join(cfg.arm_config["INSTALLPATH"], "scripts/update_key.sh")]
+    # if MAKEMKV_PERMA_KEY is populated
+    if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
+        logging.debug("MAKEMKV_PERMA_KEY populated, using that...")
+        # add MAKEMKV_PERMA_KEY as an argument to the command
+        cmd += [cfg.arm_config['MAKEMKV_PERMA_KEY']]
+
     try:
-        logging.info("Updating MakeMKV key...")
-        cmd = [os.path.join(cfg.arm_config["INSTALLPATH"], "scripts/update_key.sh")]
-        # if MAKEMKV_PERMA_KEY is populated
-        if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
-            logging.debug("MAKEMKV_PERMA_KEY populated, using that...")
-            # add MAKEMKV_PERMA_KEY as an argument to the command
-            cmd += [cfg.arm_config['MAKEMKV_PERMA_KEY']]
-        proc = subprocess.run(cmd, capture_output=True, shell=True, check=True)
-        logging.debug(proc.stdout)
+        output = arm_subprocess(cmd, in_shell=True, check=True)
+        logging.debug(output)
     except subprocess.CalledProcessError as err:
-        logging.debug(err.stdout)
-        logging.error(f"Error updating MakeMKV key, return code: {err.returncode}")
-        raise MakeMkvRuntimeError(err.returncode, cmd, output=err.stdout) from err
+        raise RuntimeError("Error updating MakeMKV key") from err
 
 
 def progress_log(job):
