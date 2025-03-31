@@ -10,8 +10,8 @@ import subprocess
 import re
 from datetime import datetime
 from pathlib import Path
-from sqlalchemy.exc import SQLAlchemyError
 from time import strftime, localtime, time, sleep
+from sqlalchemy.exc import SQLAlchemyError
 
 import bcrypt
 import requests
