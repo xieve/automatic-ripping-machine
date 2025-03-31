@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """Main run page for armui"""
 import os  # noqa: F401
 import sys
