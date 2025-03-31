@@ -28,14 +28,21 @@ def setup_logging(job):
         log_full = os.path.join(cfg.arm_config['LOGPATH'], logfile)
     else:
         valid_label = job.label.replace("/", "_")
-        log_file_name = f"{valid_label}.log"
-        new_log_file = f"{valid_label}_{job.stage}.log"
-        temp_log_full = os.path.join(cfg.arm_config['LOGPATH'], log_file_name)
-        log_file = new_log_file if os.path.isfile(temp_log_full) else log_file_name
-        log_full = os.path.join(cfg.arm_config['LOGPATH'], log_file)
-        job.logfile = log_file
-    # Remove any root loggers
-    clean_loggers()
+
+    log_file_name = f"{valid_label}.log"
+    new_log_file = f"{valid_label}_{job.stage}.log"
+    temp_log_full = os.path.join(cfg.arm_config['LOGPATH'], log_file_name)
+    log_file = new_log_file if os.path.isfile(temp_log_full) else log_file_name
+    log_full = os.path.join(cfg.arm_config['LOGPATH'], log_file)
+
+    job.logfile = log_file
+
+    # If a more specific log file is created, the messages are not also logged to
+    # arm.log, but they are still logged to stdout and syslog
+    logger = logging.getLogger()
+    for handler in logger.handlers:
+        if isinstance(handler, logging.FileHandler):
+            logger.removeHandler(handler)
     # Debug formatting
     if cfg.arm_config['LOGLEVEL'] == "DEBUG":
         logging.basicConfig(filename=log_full,
@@ -52,17 +59,6 @@ def setup_logging(job):
 
     # Return the full logfile location to the logs
     return log_full
-
-
-def clean_loggers():
-    """
-    try to catch any old loggers and remove them
-    :return: None
-    """
-    try:
-        logging.getLogger().removeHandler(logging.getLogger().handlers[0])
-    except IndexError:
-        return
 
 
 def clean_up_logs(logpath, loglife):
