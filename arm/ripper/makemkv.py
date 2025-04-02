@@ -13,18 +13,20 @@ import enum
 import itertools
 import logging
 import os
-import subprocess
-
+import re
 import shlex
+import subprocess
+from pathlib import Path
 from time import sleep
+from urllib.error import URLError
 
 from arm.models import Track, SystemDrives
 from arm.models.job import JobState
 from arm.ripper import utils
-from arm.ripper.ProcessHandler import arm_subprocess
 from arm.ui import db
 import arm.config.config as cfg
 from arm.ripper.utils import notify
+from urllib.request import urlopen, Request
 
 
 MAKEMKV_INFO_WAIT_TIME = 60  # [s]
@@ -617,6 +619,7 @@ def makemkv_mkv(job, rawpath):
     # Get drive mode for the current drive
     mode = utils.get_drive_mode(job.devpath)
     logging.info(f"Job running in {mode} mode")
+
     # Get track info form mkv rip
     get_track_info(job.drive.mdisc, job)
     # route to ripping functions.
@@ -670,8 +673,8 @@ def makemkv(job):
     Returns:
         str: path to ripped files.
     """
-    # confirm MKV is working, beta key hasn't expired
-    prep_mkv()
+    update_key()
+
     logging.info(f"Starting MakeMKV rip. Method is {job.config.RIPMETHOD}")
     # get MakeMKV disc number
     if job.drive.mdisc is None:
@@ -807,26 +810,51 @@ def setup_rawpath(job, raw_path):
     return raw_path
 
 
-def prep_mkv():
+def update_key() -> None:
     """
-    Make sure the MakeMKV key is up-to-date
-
-    Raises:
-        MakeMkvRuntimeError
+    Write MakeMKV key to ~/.MakeMKV/settings.conf. Will use perpetual key if provided through the
+    config, otherwise it will scrape the latest beta key from the forum.
     """
-    logging.info("Updating MakeMKV key...")
-    cmd = [os.path.join(cfg.arm_config["INSTALLPATH"], "scripts/update_key.sh")]
-    # if MAKEMKV_PERMA_KEY is populated
-    if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
-        logging.debug("MAKEMKV_PERMA_KEY populated, using that...")
-        # add MAKEMKV_PERMA_KEY as an argument to the command
-        cmd += [cfg.arm_config['MAKEMKV_PERMA_KEY']]
-
     try:
-        output = arm_subprocess(cmd, in_shell=True, check=True)
-        logging.debug(output)
-    except subprocess.CalledProcessError as err:
-        raise RuntimeError("Error updating MakeMKV key") from err
+        key_pattern = r"T-[\w\d@]{66}"
+        if key := cfg.arm_config["MAKEMKV_PERMA_KEY"]:
+            logging.info("Setting perpetual license key for MakeMKV...")
+        else:
+            logging.info("Fetching latest MakeMKV beta key...")
+            key = re.search(
+                key_pattern,
+                urlopen(Request(
+                    url="https://forum.makemkv.com/forum/viewtopic.php?f=5&t=1053",
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36"
+                    }
+                )).read().decode("utf-8")
+            )[0]
+            logging.debug(f"Using beta key {key}")
+        key = f'app_Key = "{key}"\n'
+
+        settings_path = Path(os.path.expanduser("~/.MakeMKV/settings.conf")).resolve()
+        os.makedirs(settings_path.parent, mode=0o775, exist_ok=True)
+        if settings_path.exists():
+            with (open(settings_path, "r+") as settings_file):
+                settings_file.seek(0)
+                settings_file.writelines(
+                    (
+                        line
+                        for line in settings_file
+                        if not re.match(r"app_Key\s*=", line)
+                    ),
+                )
+                settings_file.write(key)
+                settings_file.truncate()
+        else:
+            with open(settings_path, "w") as settings_file:
+                settings_file.write(key)
+
+        logging.info("MakeMKV key has been set.")
+
+    except (UnicodeDecodeError, URLError, OSError, IndexError) as e:
+        logging.error(f"Failed to update MakeMKV Key: {e}")
 
 
 def progress_log(job):
