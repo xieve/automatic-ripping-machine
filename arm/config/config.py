@@ -6,7 +6,7 @@ import yaml
 
 import arm.config.config_utils as config_utils
 
-CONFIG_LOCATION = os.environ.get("CONFIGURATION_DIRECTORY", "/etc/arm/config")
+CONFIG_LOCATION = os.environ.get("CONFIGURATION_DIRECTORY", "/etc/arm/config").split(":")[0]
 arm_config_path = os.path.join(CONFIG_LOCATION, "arm.yaml")
 abcde_config_path = os.path.join(CONFIG_LOCATION, "abcde.conf")
 apprise_config_path = os.path.join(CONFIG_LOCATION, "apprise.yaml")
@@ -31,9 +31,9 @@ cur_cfg = _load_config(arm_config_path)
 new_cfg = _load_config(os.path.join(cur_cfg['INSTALLPATH'], "setup/arm.yaml"))
 
 # Environment variables as in systemd.exec(5)
-if log_path := os.environ.get("LOGS_DIRECTORY"):
+if log_path := os.environ.get("LOGS_DIRECTORY").split(":")[0]:
     cur_cfg["LOGPATH"] = log_path
-if state_path := os.environ.get("STATE_DIRECTORY"):
+if state_path := os.environ.get("STATE_DIRECTORY").split(":")[0]:
     cur_cfg["DBFILE"] = os.path.join(state_path, "arm.db")
 
 # 2. If the dicts do not have the same number of keys

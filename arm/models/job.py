@@ -136,7 +136,8 @@ class Job(db.Model):
     def __init__(self, devpath):
         """Return a disc object"""
         self.devpath = devpath
-        self.mountpoint = os.environ.get("RUNTIME_DIRECTORY", "/mnt") + devpath
+        # systemd can pass more than one RUNTIME_DIRECTORY, separated by :, we use the first one
+        self.mountpoint = os.environ.get("RUNTIME_DIRECTORY", "/mnt").split(":")[0] + devpath
         self.hasnicetitle = False
         self.video_type = "unknown"
         self.ejected = False
