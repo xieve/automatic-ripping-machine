@@ -132,7 +132,7 @@ def main(logfile, job, protection=0):
             job.status = JobState.SUCCESS.value
             db.session.commit()
         else:
-            logging.info("Music rip failed.  See previous errors.  Exiting. ")
+            logging.critical("Music rip failed.  See previous errors.  Exiting. ")
             job.status = JobState.FAILURE.value
             db.session.commit()
         job.eject()
@@ -143,12 +143,12 @@ def main(logfile, job, protection=0):
         if utils.rip_data(job):
             utils.notify(job, constants.NOTIFY_TITLE, f"Data disc: {job.label} copying complete. ")
         else:
-            logging.info("Data rip failed.  See previous errors.  Exiting.")
+            logging.critical("Data rip failed.  See previous errors.  Exiting.")
         job.eject()
 
     # Type: undefined
     else:
-        logging.info("Couldn't identify the disc type. Exiting without any action.")
+        logging.critical("Couldn't identify the disc type. Exiting without any action.")
 
 
 if __name__ == "__main__":
@@ -174,9 +174,9 @@ if __name__ == "__main__":
         time.sleep(1)
     else:
         # This should really never trigger now as arm_wrapper should be taking care of this.
-        msg = f"Failed to wait for drive ready (ioctl tray status: {drive.tray})."
-        logging.info(msg)
-        arm_log.info(msg)
+        msg = f"Timed out waiting for drive to be ready (ioctl tray status: {drive.tray})."
+        logging.critical(msg)
+        arm_log.critical(msg)
         sys.exit()
 
     # ARM Job starts
@@ -187,7 +187,7 @@ if __name__ == "__main__":
 
     # Don't put out anything if we are using the empty.log NAS_[0-9].log or NAS1_[0-9].log
     if log_file.find("empty.log") != -1 or re.search(r"(NAS|NAS1)_\d+\.log", log_file) is not None:
-        arm_log.info("ARM is trying to write a job to the empty.log, or NAS**.log")
+        arm_log.critical("ARM is trying to write a job to the empty.log, or NAS**.log")
         sys.exit()
 
     # Capture and report the ARM Info
@@ -235,8 +235,8 @@ if __name__ == "__main__":
     try:
         main(log_file, job, args.protection)
     except Exception as error:
-        logging.error(error, exc_info=True)
-        logging.error("A fatal error has occurred and ARM is exiting.  See traceback below for details.")
+        logging.critical(error, exc_info=True)
+        logging.critical("A fatal error has occurred and ARM is exiting.  See traceback below for details.")
         utils.notify(job, constants.NOTIFY_TITLE, "ARM encountered a fatal error processing "
                                                   f"{job.title}. Check the logs for more details. {error}")
         job.status = JobState.FAILURE.value
