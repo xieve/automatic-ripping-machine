@@ -155,7 +155,7 @@ if __name__ == "__main__":
     # Get arguments from arg parser
     args = entry()
     devpath = f"/dev/{args.devpath}"
-    # Setup base logger - will log to /var/log/arm.log, /home/arm/logs/arm.log & stdout
+    # Setup base logger - will log to <log directory>/arm.log, syslog & stdout
     # This will catch any permission errors
     arm_log = logger.create_early_logger(syslog=args.syslog)
     # Make sure all directories are fully setup
