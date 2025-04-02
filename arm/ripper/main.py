@@ -4,40 +4,48 @@ The main runner for Automatic Ripping Machine
 
 For help please visit https://github.com/automatic-ripping-machine/automatic-ripping-machine
 """
-import sys
 import argparse  # noqa: E402
-import os  # noqa: E402
+import datetime  # noqa: E402
+import getpass  # noqa E402
 import logging  # noqa: E402
 import logging.handlers  # noqa: E402
-import time  # noqa: E402
-import datetime  # noqa: E402
+import os  # noqa: E402
 import re  # noqa: E402
-import getpass  # noqa E402
+import sys
+import time  # noqa: E402
 from importlib.util import find_spec
 from pathlib import Path
-import pyudev  # noqa: E402
+
 import psutil  # noqa E402
+import pyudev  # noqa: E402
 
 # If the arm module can't be found, add the folder this file is in to PYTHONPATH
 # This is a bad workaround for non-existent packaging
 if find_spec("arm") is None:
     sys.path.append(str(Path(__file__).parents[2]))
 
-from arm.ripper import logger, utils, identify, arm_ripper, music_brainz  # noqa: E402
 import arm.config.config as cfg  # noqa E402
 from arm.models.config import Config  # noqa: E402
 from arm.models.job import Job, JobState  # noqa: E402
 from arm.models.system_drives import SystemDrives  # noqa: E402
-from arm.ui import app, db, constants  # noqa E402
-from arm.ui.settings import DriveUtils as drive_utils # noqa E402
-import arm.config.config as cfg  # noqa E402
+from arm.ripper import (arm_ripper, identify, logger,  # noqa: E402
+                        music_brainz, utils)
 from arm.ripper.ARMInfo import ARMInfo  # noqa E402
+from arm.ui import app, constants, db  # noqa E402
+from arm.ui.settings import DriveUtils as drive_utils  # noqa E402
 
 
 def entry():
     """ Entry to program, parses arguments"""
     parser = argparse.ArgumentParser(description='Process disc using ARM')
     parser.add_argument('-d', '--devpath', help='Devpath', required=True)
+    parser.add_argument(
+        "--syslog",
+        help="Log to /dev/log",
+        required=False,
+        default=True,
+        action=argparse.BooleanOptionalAction,
+    )
     return parser.parse_args()
 
 
@@ -144,14 +152,14 @@ def main(logfile, job):
 
 
 if __name__ == "__main__":
-    # Setup base logger - will log to <log directory>/arm.log, syslog & stdout
-    # This will catch any permission errors
-    arm_log = logger.create_early_logger()
-    # Make sure all directories are fully setup
-    utils.arm_setup(arm_log)
     # Get arguments from arg parser
     args = entry()
     devpath = f"/dev/{args.devpath}"
+    # Setup base logger - will log to <log directory>/arm.log, syslog & stdout
+    # This will catch any permission errors
+    arm_log = logger.create_early_logger(syslog=args.syslog)
+    # Make sure all directories are fully setup
+    utils.arm_setup(arm_log)
     drive = SystemDrives.query.filter_by(mount=devpath).one()  # unique mounts
 
     # With some drives and some disks, there is a race condition between creating the Job()
