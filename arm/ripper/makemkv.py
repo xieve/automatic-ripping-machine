@@ -16,19 +16,6 @@ import arm.config.config as cfg  # noqa E402
 from arm.ripper.utils import notify
 
 
-class MakeMkvRuntimeError(RuntimeError):
-    """Exception raised when a CalledProcessError is thrown during execution of a `makemkvcon` command.
-
-    Attributes:
-        message: the explanation of the error
-    """
-
-    def __init__(self, error):
-        self.message = f"Call to MakeMKV failed with code: {error.returncode} ({error.output})"
-        logging.error(self.message)
-        raise super().__init__(self.message)
-
-
 def makemkv(logfile, job):
     """
     Rip Blu-rays/DVDs with MakeMKV\n\n
@@ -48,16 +35,13 @@ def makemkv(logfile, job):
     # get MakeMKV disc number
     logging.debug("Getting MakeMKV disc number")
     cmd = f"makemkvcon -r info disc:9999 | grep {job.devpath} | grep -oP '(?<=:).*?(?=,)'"
-    try:
-        mdisc = arm_subprocess(
-            cmd,
-            in_shell=True,
-            check=True,
-        )
-        logging.info(f"MakeMKV disc number: {mdisc.strip()}")
-        logging.debug(f"Disk raw number: {mdisc}")
-    except subprocess.CalledProcessError as mdisc_error:
-        raise MakeMkvRuntimeError(mdisc_error) from mdisc_error
+    mdisc = arm_subprocess(
+        cmd,
+        in_shell=True,
+        check=True,
+    )
+    logging.info(f"MakeMKV disc number: {mdisc.strip()}")
+    logging.debug(f"Disk raw number: {mdisc}")
 
     # get filesystem in order
     rawpath = setup_rawpath(job, os.path.join(str(job.config.RAW_PATH), str(job.title)))
@@ -243,14 +227,11 @@ def get_track_info(mdisc, job):
     cmd = f'makemkvcon -r --progress={os.path.join(job.config.LOGPATH, "progress", str(job.job_id))}.log ' \
           f'--messages=-stdout --minlength={job.config.MINLENGTH} ' \
           f'--cache=1 info disc:{mdisc}'
-    try:
-        mkv = arm_subprocess(
-            cmd,
-            in_shell=True,
-            check=True,
-        ).splitlines()
-    except subprocess.CalledProcessError as mdisc_error:
-        raise MakeMkvRuntimeError(mdisc_error) from mdisc_error
+    mkv = arm_subprocess(
+        cmd,
+        in_shell=True,
+        check=True,
+    ).splitlines()
 
     track = 0
     fps = float(0)
@@ -354,11 +335,7 @@ def run_makemkv(cmd, logfile):
         MakeMkvRuntimeError
     """
 
-    try:
-        # need to check output for '0 titles saved'
-        arm_subprocess(f"{cmd}", in_shell=True, check=True)
-    except subprocess.CalledProcessError as mkv_error:
-        raise MakeMkvRuntimeError(mkv_error) from mkv_error
+    arm_subprocess(f"{cmd}", in_shell=True, check=True)
 
 
 def manual_wait(job) -> bool:
