@@ -20,7 +20,7 @@ def arm_subprocess(cmd, in_shell, check=False):
     except subprocess.CalledProcessError as error:
         logging.error(error)
         logging.error("Output was:")
-        logging.error(error.output)
+        logging.error(error.output.decode("utf-8"))
         logging.debug(str(error.__traceback__))
         if check:
             raise error
