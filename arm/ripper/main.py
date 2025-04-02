@@ -39,6 +39,13 @@ def entry():
     parser = argparse.ArgumentParser(description='Process disc using ARM')
     parser.add_argument('-d', '--devpath', help='Devpath', required=True)
     parser.add_argument('-p', '--protection', help='Does disc have 99 track protection', required=False)
+    parser.add_argument(
+        "--syslog",
+        help="Log to /dev/log",
+        required=False,
+        default=True,
+        action=argparse.BooleanOptionalAction,
+    )
     return parser.parse_args()
 
 
@@ -145,14 +152,14 @@ def main(logfile, job, protection=0):
 
 
 if __name__ == "__main__":
-    # Setup base logger - will log to /var/log/arm.log, /home/arm/logs/arm.log & stdout
-    # This will catch any permission errors
-    arm_log = logger.create_early_logger()
-    # Make sure all directories are fully setup
-    utils.arm_setup(arm_log)
     # Get arguments from arg parser
     args = entry()
     devpath = f"/dev/{args.devpath}"
+    # Setup base logger - will log to /var/log/arm.log, /home/arm/logs/arm.log & stdout
+    # This will catch any permission errors
+    arm_log = logger.create_early_logger(syslog=args.syslog)
+    # Make sure all directories are fully setup
+    utils.arm_setup(arm_log)
 
     # With some drives and some disks, there is a race condition between creating the Job()
     # below and the drive being ready, so give it a chance to get ready (observed with LG SP80NB80)
