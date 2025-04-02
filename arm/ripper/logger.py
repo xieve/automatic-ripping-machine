@@ -32,11 +32,11 @@ def setup_job_log(job):
     # This isn't catching all of them
     if job.label == "" or job.label is None:
         if job.disctype == "music":
-            logfile = job.logfile = job.identify_audio_cd()
+            log_file = job.logfile = job.identify_audio_cd()
         else:
-            logfile = "empty.log"
+            log_file = "empty.log"
         # set a log_full for empty.log and music_cd.log
-        log_full = os.path.join(cfg.arm_config['LOGPATH'], logfile)
+        log_full = os.path.join(cfg.arm_config['LOGPATH'], log_file)
     else:
         valid_label = job.label.replace("/", "_")
         log_file_name = f"{valid_label}.log"
@@ -44,7 +44,8 @@ def setup_job_log(job):
         temp_log_full = os.path.join(cfg.arm_config['LOGPATH'], log_file_name)
         log_file = new_log_file if os.path.isfile(temp_log_full) else log_file_name
         log_full = os.path.join(cfg.arm_config['LOGPATH'], log_file)
-        job.logfile = log_file
+
+    job.logfile = log_file
 
     # If a more specific log file is created, the messages are not also logged to
     # arm.log, but they are still logged to stdout and syslog
