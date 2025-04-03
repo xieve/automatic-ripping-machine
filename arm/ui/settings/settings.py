@@ -187,16 +187,19 @@ def save_settings():
         # Build the new arm.yaml with updated values from the user
         arm_cfg = ui_utils.build_arm_cfg(request.form.to_dict(), comments)
         # Save updated arm.yaml
-        with open(cfg.arm_config_path, "w") as settings_file:
-            settings_file.write(arm_cfg)
-            settings_file.close()
-        success = True
-        importlib.reload(cfg)
-        # Set the ARM Log level to the config
-        app.logger.info(f"Setting log level to: {cfg.arm_config['LOGLEVEL']}")
-        app.logger.setLevel(cfg.arm_config['LOGLEVEL'])
+        try:
+            with open(cfg.arm_config_path, "w") as settings_file:
+                settings_file.write(arm_cfg)
+                settings_file.close()
+            success = True
+            importlib.reload(cfg)
+            # Set the ARM Log level to the config
+            app.logger.info(f"Setting log level to: {cfg.arm_config['LOGLEVEL']}")
+            app.logger.setLevel(cfg.arm_config['LOGLEVEL'])
+        except OSError as e:
+            # arm.yaml is read-only
+            app.logger.error(f"{cfg.arm_config_path} is read-only", exc_info=e)
 
-    # If we get to here there was no post data
     return {'success': success, 'settings': cfg.arm_config, 'form': 'arm ripper settings'}
 
 
