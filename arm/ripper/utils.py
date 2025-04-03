@@ -10,6 +10,7 @@ import shutil
 import time
 import random
 import re
+from logging import Logger
 from pathlib import Path, PurePath
 from math import ceil
 
@@ -612,35 +613,27 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
     database_adder(job_track)
 
 
-def arm_setup(arm_log):
+def arm_setup(arm_log: Logger) -> None:
     """
     Setup arm - Create all the directories we need for arm to run
     check that folders are writeable, and the db file is writeable
-    logging doesn't work here, need to write to empty.log or error.log ?\n
-    :arguments: None
-    :return: None
     """
-    arm_directories = [cfg.arm_config['RAW_PATH'], cfg.arm_config['TRANSCODE_PATH'],
-                       cfg.arm_config['COMPLETED_PATH'], cfg.arm_config['LOGPATH']]
-    try:
-        # Check db file is writeable
-        if not os.access(cfg.arm_config['DBFILE'], os.W_OK):
-            arm_log.error(f"Cant write to database file! Permission ERROR: {cfg.arm_config['DBFILE']} - ARM Will Fail!")
-            raise IOError
-        # Check directories for read/write permission -> create if they don't exist
-        for folder in arm_directories:
-            if not os.access(folder, os.R_OK):
-                # don't raise as we may be able to create
-                arm_log.error(f"Cant read from folder, Permission ERROR: {folder} - ARM Will Fail!")
-            if not os.access(folder, os.W_OK):
-                arm_log.error(f"Cant write to folder, Permission ERROR: {folder} - ARM Will Fail!")
-                raise IOError
-            if make_dir(folder):
-                arm_log.error(f"Cant create folder: {folder} - ARM Will Fail!")
-                raise IOError
-    except IOError as error:
-        arm_log.error(f"A fatal error has occurred. "
-                      f"Cant find/create the folders set in arm.yaml - Error:{error} - ARM Will Fail!")
+    arm_directories = (
+        cfg.arm_config['RAW_PATH'],
+        cfg.arm_config['TRANSCODE_PATH'],
+        cfg.arm_config['COMPLETED_PATH'],
+        cfg.arm_config['LOGPATH'],
+    )
+    # Check if DB file is writeable
+    if not os.access(cfg.arm_config['DBFILE'], os.W_OK):
+        arm_log.critical(f"Can't write to database file: {cfg.arm_config['DBFILE']}")
+    # Check directories for read/write permission -> create if they don't exist
+    for folder in arm_directories:
+        os.makedirs(folder, exist_ok=True)
+        if not os.access(folder, os.R_OK):
+            arm_log.error(f"Can't read from folder: {folder}")
+        if not os.access(folder, os.W_OK):
+            arm_log.critical(f"Can't write to folder: {folder}")
 
 
 def database_updater(args, job, wait_time=90):
