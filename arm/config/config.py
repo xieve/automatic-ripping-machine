@@ -65,12 +65,16 @@ if len(cur_cfg) != len(new_cfg):
             # Test if value is Boolean
             arm_cfg += config_utils.arm_yaml_test_bool(key, value)
 
-    # this handles the truncation
-    with open(arm_config_path, "w") as settings_file:
-        settings_file.write(arm_cfg)
-        settings_file.close()
+    try:
+        # this handles the truncation
+        with open(arm_config_path, "w") as settings_file:
+            settings_file.write(arm_cfg)
+            settings_file.close()
+    except OSError:
+        # arm.yaml is read-only
+        pass
 
-arm_config = _load_config(arm_config_path)
+arm_config = new_cfg
 
 # abcde config file, open and read contents
 abcde_config = _load_abcde(abcde_config_path)
