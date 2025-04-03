@@ -8,7 +8,15 @@ import subprocess
 
 def arm_subprocess(cmd, in_shell, check=False):
     """
-    Handle creating new subprocesses and catch any errors
+    Spawn blocking subprocess
+
+    :param cmd: Command to run
+    :param in_shell: Run ``cmd`` in a shell
+    :param check: Raise ``CalledProcessError`` if ``cmd`` returns non-zero exit code
+
+    :return: Output of ``cmd``, or ``None`` if it returned a non-zero exit code
+
+    :raise CalledProcessError:
     """
     arm_process = None
     logging.debug(f"Running command: {cmd}")
