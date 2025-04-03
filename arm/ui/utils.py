@@ -853,18 +853,6 @@ def get_git_revision_hash() -> str:
     return git_hash
 
 
-def get_git_revision_short_hash() -> str:
-    """Get short hash of current git commit"""
-    git_hash: str = 'unknown'
-    try:
-        subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'],
-                                cwd=cfg.arm_config['INSTALLPATH']).decode('ascii').strip()
-    except subprocess.CalledProcessError as e:
-        app.logger.debug(f"GIT revision error: {e}")
-
-    return git_hash
-
-
 def git_check_updates(current_hash) -> bool:
     """
     Check the ARM commit hash against the remote (GitHub) commit hash
