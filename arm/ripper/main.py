@@ -17,6 +17,7 @@ import getpass  # noqa E402
 from argparse import Namespace
 from importlib.util import find_spec
 from pathlib import Path
+from signal import signal, SIGTERM
 from typing import Optional
 
 import psutil  # noqa E402
@@ -162,6 +163,13 @@ def setup():
     global job
     global args
     global log_file
+
+    def signal_handler(_signal, _frame_type):
+        raise Exception("Received SIGTERM")
+
+    # Handle SIGTERM so we can exit gracefully. Without this, no except: or finally: blocks are run and the program exits
+    # immediately, potentially leaving the database in an invalid state.
+    signal(SIGTERM, signal_handler)
 
     # Get arguments from arg parser
     args = entry()
