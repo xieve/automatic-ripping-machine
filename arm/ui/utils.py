@@ -839,16 +839,16 @@ def import_movie_add(poster_image, imdb_id, movie_group, my_path):
 
 
 def get_git_revision_hash() -> str:
-    """Get full hash of current git commit"""
+    """Get short hash of current git commit"""
     git_hash: str = 'unknown'
     try:
-        git_hash = subprocess.check_output(['git', 'rev-parse', 'HEAD'],
-                                           cwd=cfg.arm_config['INSTALLPATH']).decode('ascii').strip()
-        # Trunkate to seven characters (aligns with the github commit values reported)
-        git_hash = git_hash[:7]
-        app.logger.debug(f"GIT revision: {git_hash}")
-    except subprocess.CalledProcessError as e:
-        app.logger.debug(f"GIT revision error: {e}")
+        git_hash = subprocess.check_output(
+            ['git', 'rev-parse', '--short', 'HEAD'],
+            cwd=cfg.arm_config['INSTALLPATH']
+        ).decode('utf-8').strip()
+        app.logger.debug(f"Git revision: {git_hash}")
+    except (subprocess.CalledProcessError, OSError) as e:
+        app.logger.error("Error trying to read Git revision", exc_info=e)
 
     return git_hash
 
