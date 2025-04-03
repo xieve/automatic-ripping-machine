@@ -623,6 +623,7 @@ def arm_setup(arm_log: Logger) -> None:
         cfg.arm_config['TRANSCODE_PATH'],
         cfg.arm_config['COMPLETED_PATH'],
         cfg.arm_config['LOGPATH'],
+        os.path.join(cfg.arm_config['LOGPATH'], "progress"),
     )
     # Check if DB file is writeable
     if not os.access(cfg.arm_config['DBFILE'], os.W_OK):
