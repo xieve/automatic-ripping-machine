@@ -18,10 +18,12 @@ def arm_subprocess(cmd, in_shell, check=False):
             shell=in_shell
         ).decode("utf-8")
     except subprocess.CalledProcessError as error:
-        logging.error(error)
-        logging.error("Output was:")
-        logging.error(error.output.decode("utf-8"))
-        logging.debug(str(error.__traceback__))
+        logging.error(f"Error while running command: {cmd}", exc_info=error)
+        if decoded_output := error.output.decode("utf-8").strip():
+            logging.error("Output was:")
+            logging.error(decoded_output)
+        else:
+            logging.error("The command produced no output.")
         if check:
             raise error
 
