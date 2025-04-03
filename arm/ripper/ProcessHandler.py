@@ -26,7 +26,7 @@ def arm_subprocess(cmd: str | List[str], in_shell=False, check=False) -> Optiona
             cmd,
             shell=in_shell
         ).decode("utf-8")
-    except subprocess.CalledProcessError as error:
+    except (subprocess.CalledProcessError, OSError) as error:
         logging.error(f"Error while running command: {cmd}", exc_info=error)
         if decoded_output := error.output.decode("utf-8").strip():
             logging.error("Output was:")
