@@ -13,8 +13,11 @@ import time  # noqa: E402
 import datetime  # noqa: E402
 import re  # noqa: E402
 import getpass  # noqa E402
+from argparse import Namespace
 from importlib.util import find_spec
 from pathlib import Path
+from typing import Optional
+
 import pyudev  # noqa: E402
 import psutil  # noqa E402
 
@@ -32,6 +35,10 @@ from arm.ui import app, db, constants  # noqa E402
 from arm.ui.settings import DriveUtils as drive_utils # noqa E402
 import arm.config.config as cfg  # noqa E402
 from arm.ripper.ARMInfo import ARMInfo  # noqa E402
+
+job: Optional[Job] = None
+args: Optional[Namespace] = None
+log_file: Optional[str] = None
 
 
 def entry():
@@ -100,7 +107,7 @@ def check_fstab():
     logging.error("No fstab entry found.  ARM will likely fail.")
 
 
-def main(logfile, job, protection=0):
+def main():
     """main disc processing function"""
     logging.info("Starting Disc identification")
     identify.identify(job)
@@ -119,13 +126,13 @@ def main(logfile, job, protection=0):
     # Ripper type assessment for the various media types
     # Type: dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
-        arm_ripper.rip_visual_media(have_dupes, job, logfile, protection)
+        arm_ripper.rip_visual_media(have_dupes, job, log_file, args.protection)
 
     # Type: Music
     elif job.disctype == "music":
         # Try to recheck music disc for auto ident
         music_brainz.main(job)
-        if utils.rip_music(job, logfile):
+        if utils.rip_music(job, log_file):
             utils.notify(job, constants.NOTIFY_TITLE, f"Music CD: {job.title} {constants.PROCESS_COMPLETE}")
             utils.scan_emby()
             # This shouldn't be needed. but to be safe
@@ -151,7 +158,11 @@ def main(logfile, job, protection=0):
         logging.critical("Couldn't identify the disc type. Exiting without any action.")
 
 
-if __name__ == "__main__":
+def setup():
+    global job
+    global args
+    global log_file
+
     # Get arguments from arg parser
     args = entry()
     devpath = f"/dev/{args.devpath}"
@@ -232,23 +243,40 @@ if __name__ == "__main__":
     # Log all params/attribs from the drive
     log_udev_params(devpath)
 
+
+if __name__ == "__main__":
+    job = None
     try:
-        main(log_file, job, args.protection)
+        setup()
+        main()
     except Exception as error:
-        logging.critical(error, exc_info=True)
-        logging.critical("A fatal error has occurred and ARM is exiting.  See traceback below for details.")
-        utils.notify(job, constants.NOTIFY_TITLE, "ARM encountered a fatal error processing "
-                                                  f"{job.title}. Check the logs for more details. {error}")
+        logging.critical("A fatal error has occurred and ARM is exiting. See traceback below for details.")
+        logging.critical(error, exc_info=error)
+        if job:
+            utils.notify(
+                job,
+                constants.NOTIFY_TITLE,
+                f"ARM encountered a fatal error processing {job.title}. "
+                f"Check the logs for more details. {error}"
+            )
+        else:
+            utils.notify(
+                job,
+                constants.NOTIFY_TITLE,
+                f"ARM encountered a fatal error during job setup."
+                f"Check the logs for more details. {error}"
+            )
         job.status = JobState.FAILURE.value
         job.errors = str(error)
         # Possibly add cleanup section here for failed job files
     else:
         job.status = JobState.SUCCESS.value
     finally:
-        job.eject()  # each job stores its eject status, so it is safe to call.
-        job.stop_time = datetime.datetime.now()
-        job_length = job.stop_time - job.start_time
-        minutes, seconds = divmod(job_length.seconds + job_length.days * 86400, 60)
-        hours, minutes = divmod(minutes, 60)
-        job.job_length = f'{hours:d}:{minutes:02d}:{seconds:02d}'
+        if job:
+            job.eject()  # each job stores its eject status, so it is safe to call.
+            job.stop_time = datetime.datetime.now()
+            job_length = job.stop_time - job.start_time
+            minutes, seconds = divmod(job_length.seconds + job_length.days * 86400, 60)
+            hours, minutes = divmod(minutes, 60)
+            job.job_length = f'{hours:d}:{minutes:02d}:{seconds:02d}'
         db.session.commit()
