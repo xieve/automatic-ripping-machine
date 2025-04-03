@@ -4,9 +4,10 @@ Function definition
 """
 import logging
 import subprocess
+from typing import Optional, List
 
 
-def arm_subprocess(cmd, in_shell, check=False):
+def arm_subprocess(cmd: str | List[str], in_shell=False, check=False) -> Optional[str]:
     """
     Spawn blocking subprocess
 
