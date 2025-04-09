@@ -162,7 +162,7 @@ def setup():
     global log_file
 
     def signal_handler(_signal, _frame_type):
-        raise Exception("Received SIGTERM")
+        raise utils.RipperException("Received SIGTERM")
 
     # Handle SIGTERM so we can exit gracefully. Without this, no except: or finally: blocks are run and the program exits
     # immediately, potentially leaving the database in an invalid state.
@@ -189,7 +189,7 @@ def setup():
         logging.info(msg)
         time.sleep(1)
     else:  # no break
-        raise Exception(f"Timed out waiting for drive to be ready (ioctl tray status: {drive.tray}).")
+        raise utils.RipperException(f"Timed out waiting for drive to be ready (ioctl tray status: {drive.tray}).")
 
     # ARM Job starts
     # Create new job
@@ -249,8 +249,13 @@ if __name__ == "__main__":
         setup()
         main()
     except Exception as error:
-        logging.critical("A fatal error has occurred and ARM is exiting. See traceback below for details.")
-        logging.critical(error, exc_info=error)
+        logging.critical("A fatal error has occurred and ARM is exiting.")
+        print_stacktrace = (
+            logging.getLogger().getEffectiveLevel() == logging.DEBUG
+            or not isinstance(error, utils.RipperException)
+        )
+        logging.critical(error, exc_info=(error if print_stacktrace else None),)
+
         if job:
             utils.notify(
                 job,
