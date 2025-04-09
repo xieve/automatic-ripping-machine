@@ -134,7 +134,8 @@ def settings():
                            arm_path=arm_path,
                            media_path=media_path,
                            drives=drives,
-                           form_drive=form_drive)
+                           form_drive=form_drive,
+                           ripper_read_only=cfg.is_read_only)
 
 
 def check_hw_transcode_support():
