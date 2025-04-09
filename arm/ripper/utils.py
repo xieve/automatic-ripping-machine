@@ -405,7 +405,6 @@ def make_dir(path):
             return True
         except OSError as error:
             err = f"Couldn't create a directory at path: {path} Probably a permissions error.  Exiting"
-            logging.error(err)
             raise OSError from error
     else:
         return False
