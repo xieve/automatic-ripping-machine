@@ -143,7 +143,6 @@ def main():
             logging.critical("Music rip failed.  See previous errors.  Exiting. ")
             job.status = JobState.FAILURE.value
             db.session.commit()
-        job.eject()
 
     # Type: Data
     elif job.disctype == "data":
@@ -152,7 +151,6 @@ def main():
             utils.notify(job, constants.NOTIFY_TITLE, f"Data disc: {job.label} copying complete. ")
         else:
             logging.critical("Data rip failed.  See previous errors.  Exiting.")
-        job.eject()
 
     # Type: undefined
     else:
@@ -165,7 +163,7 @@ def setup():
     global log_file
 
     def signal_handler(_signal, _frame_type):
-        raise Exception("Received SIGTERM")
+        raise utils.RipperException("Received SIGTERM")
 
     # Handle SIGTERM so we can exit gracefully. Without this, no except: or finally: blocks are
     # run and the program exits immediately, potentially leaving the database in an invalid state.
@@ -191,12 +189,8 @@ def setup():
         msg = f"[{num} of 10] Drive [{drive.mount}] appears to be empty or is not ready. Waiting 1s"
         logging.info(msg)
         time.sleep(1)
-    else:
-        # This should really never trigger now as arm_wrapper should be taking care of this.
-        msg = f"Timed out waiting for drive to be ready (ioctl tray status: {drive.tray})."
-        logging.critical(msg)
-        arm_log.critical(msg)
-        sys.exit()
+    else:  # no break
+        raise utils.RipperException(f"Timed out waiting for drive to be ready (ioctl tray status: {drive.tray}).")
 
     # ARM Job starts
     # Create new job
@@ -206,8 +200,7 @@ def setup():
 
     # Don't put out anything if we are using the empty.log NAS_[0-9].log or NAS1_[0-9].log
     if log_file.find("empty.log") != -1 or re.search(r"(NAS|NAS1)_\d+\.log", log_file) is not None:
-        arm_log.critical("ARM is trying to write a job to the empty.log, or NAS**.log")
-        sys.exit()
+        raise utils.RipperException("ARM is trying to write a job to the empty.log, or NAS**.log")
 
     # Capture and report the ARM Info
     arminfo = ARMInfo(cfg.arm_config["INSTALLPATH"], cfg.arm_config['DBFILE'])
@@ -260,8 +253,13 @@ if __name__ == "__main__":
         setup()
         main()
     except Exception as error:
-        logging.critical("A fatal error has occurred and ARM is exiting. See traceback below for details.")
-        logging.critical(error, exc_info=error)
+        logging.critical("A fatal error has occurred and ARM is exiting.")
+        print_stacktrace = (
+            logging.getLogger().getEffectiveLevel() == logging.DEBUG
+            or not isinstance(error, utils.RipperException)
+        )
+        logging.critical(error, exc_info=(error if print_stacktrace else None),)
+
         if job:
             utils.notify(
                 job,
