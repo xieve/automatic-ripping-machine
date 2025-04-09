@@ -208,8 +208,6 @@ def setup():
     utils.duplicate_run_check(devpath)
 
     logging.info(f"************* Starting ARM processing at {datetime.datetime.now()} *************")
-    if args.protection:
-        logging.warning("Found 99 Track protection system - Job may fail!")
     # Set job status and start time
     job.status = "active"
     job.start_time = datetime.datetime.now()
