@@ -200,8 +200,7 @@ def setup():
 
     # Don't put out anything if we are using the empty.log NAS_[0-9].log or NAS1_[0-9].log
     if log_file.find("empty.log") != -1 or re.search(r"(NAS|NAS1)_\d+\.log", log_file) is not None:
-        arm_log.critical("ARM is trying to write a job to the empty.log, or NAS**.log")
-        sys.exit()
+        raise utils.RipperException("ARM is trying to write a job to the empty.log, or NAS**.log")
 
     # Capture and report the ARM Info
     arminfo = ARMInfo(cfg.arm_config["INSTALLPATH"], cfg.arm_config['DBFILE'])

@@ -118,10 +118,7 @@ def notify_entry(job):
     elif job.disctype == "data":
         notify(job, NOTIFY_TITLE, "Found data disc.  Copying data.")
     else:
-        notify(job, NOTIFY_TITLE, "Could not identify disc.  Exiting.")
-        args = {"status": JobState.FAILURE.value, "errors": "Could not identify disc."}
-        database_updater(args, job)
-        sys.exit()
+        raise RipperException("Could not determine disc type")
 
 
 def sleep_check_process(process_str, max_processes, sleep=(20, 120, 10)):
@@ -779,7 +776,7 @@ def duplicate_run_check(dev_path):
     logging.info(f"Job was started {job_time}min ago.")
     if (job_time) < 3:
         logging.info("Job was started less than 3min ago.")
-    sys.exit(1)
+    raise RipperException(f"Job already running on {dev_path}")
 
 
 def save_disc_poster(final_directory, job):
@@ -819,14 +816,7 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
             hb_out_path = hb_out_path + "_" + job.stage
             if not (make_dir(hb_out_path)):
                 # We failed to make a random directory, most likely a permission issue
-                logging.exception(
-                    "A fatal error has occurred and ARM is exiting.  "
-                    "Couldn't create filesystem. Possible permission error")
-                notify(job, NOTIFY_TITLE,
-                       f"ARM encountered a fatal error processing {job.title}."
-                       f" Couldn't create filesystem. Possible permission error. ")
-                database_updater({'status': JobState.FAILURE.value, 'errors': 'Creating folder failed'}, job)
-                sys.exit()
+                raise RipperException("Failed to create output directory")
         else:
             # We aren't allowed to rip dupes, notify and exit
             logging.info("Duplicate rips are disabled.")
