@@ -142,7 +142,6 @@ def main():
             logging.critical("Music rip failed.  See previous errors.  Exiting. ")
             job.status = "fail"
             db.session.commit()
-        job.eject()
 
     # Type: Data
     elif job.disctype == "data":
@@ -151,7 +150,6 @@ def main():
             utils.notify(job, constants.NOTIFY_TITLE, f"Data disc: {job.label} copying complete. ")
         else:
             logging.critical("Data rip failed.  See previous errors.  Exiting.")
-        job.eject()
 
     # Type: undefined
     else:
@@ -270,12 +268,12 @@ if __name__ == "__main__":
             )
         job.status = "fail"
         job.errors = str(error)
-        job.eject()
         # Possibly add cleanup section here for failed job files
     else:
         job.status = "success"
     finally:
         if job:
+            job.eject()
             job.stop_time = datetime.datetime.now()
             job_length = job.stop_time - job.start_time
             minutes, seconds = divmod(job_length.seconds + job_length.days * 86400, 60)
