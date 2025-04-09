@@ -279,7 +279,7 @@ if __name__ == "__main__":
         if job:
             job.eject()  # each job stores its eject status, so it is safe to call.
             job.stop_time = datetime.datetime.now()
-            job_length = job.stop_time - job.start_time
+            job_length = job.stop_time - job.start_time if job.start_time else 0
             minutes, seconds = divmod(job_length.seconds + job_length.days * 86400, 60)
             hours, minutes = divmod(minutes, 60)
             job.job_length = f'{hours:d}:{minutes:02d}:{seconds:02d}'
