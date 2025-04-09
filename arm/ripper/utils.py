@@ -497,11 +497,7 @@ def rip_data(job):
         random_time = str(round(time.time() * 100))
         raw_path = os.path.join(job.config.RAW_PATH, str(job.label) + "_" + random_time)
         final_file_name = f"{job.label}_{random_time}"
-        if (make_dir(raw_path)) is False:
-            logging.info(f"Could not create data directory: {raw_path}  Exiting ARM. ")
-            args = {"status": JobState.FAILURE.value, "errors": "Couldn't create data directory"}
-            database_updater(args, job)
-            sys.exit()
+        make_dir(raw_path)
 
     final_path = os.path.join(final_path, final_file_name)
     incomplete_filename = os.path.join(raw_path, str(job.label) + ".part")
