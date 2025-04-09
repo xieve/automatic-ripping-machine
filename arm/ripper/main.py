@@ -46,7 +46,6 @@ def entry():
     """ Entry to program, parses arguments"""
     parser = argparse.ArgumentParser(description='Process disc using ARM')
     parser.add_argument('-d', '--devpath', help='Devpath', required=True)
-    parser.add_argument('-p', '--protection', help='Does disc have 99 track protection', required=False)
     parser.add_argument(
         "--syslog",
         help="Log to /dev/log",
@@ -127,7 +126,7 @@ def main():
     # Ripper type assessment for the various media types
     # Type: dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
-        arm_ripper.rip_visual_media(have_dupes, job, log_file, args.protection)
+        arm_ripper.rip_visual_media(have_dupes, job, log_file, job.has_track_99)
 
     # Type: Music
     elif job.disctype == "music":
@@ -218,8 +217,6 @@ def setup():
     utils.duplicate_run_check(devpath)
 
     logging.info(f"************* Starting ARM processing at {datetime.datetime.now()} *************")
-    if args.protection:
-        logging.warning("Found 99 Track protection system - Job may fail!")
     # Set job status and start time
     job.status = JobState.IDLE.value
     job.start_time = datetime.datetime.now()
