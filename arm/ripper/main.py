@@ -142,7 +142,6 @@ def main():
             logging.critical("Music rip failed.  See previous errors.  Exiting. ")
             job.status = JobState.FAILURE.value
             db.session.commit()
-        job.eject()
 
     # Type: Data
     elif job.disctype == "data":
@@ -151,7 +150,6 @@ def main():
             utils.notify(job, constants.NOTIFY_TITLE, f"Data disc: {job.label} copying complete. ")
         else:
             logging.critical("Data rip failed.  See previous errors.  Exiting.")
-        job.eject()
 
     # Type: undefined
     else:
