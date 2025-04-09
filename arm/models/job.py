@@ -248,16 +248,10 @@ class Job(db.Model):
         logging.debug(f"mm_title: {mb_title}")
 
         if mb_title == "not identified":
-            self.label = self.title = "not identified"
-            logfile = "music_cd.log"
-            new_log_file = f"music_cd_{round(time.time() * 100)}.log"
+            self.label = self.title = mb_title
+            return "music_cd"
         else:
-            logfile = f"{mb_title}.log"
-            new_log_file = f"{mb_title}_{round(time.time() * 100)}.log"
-
-        temp_log_full = os.path.join(cfg.arm_config['LOGPATH'], logfile)
-        logfile = new_log_file if os.path.isfile(temp_log_full) else logfile
-        return logfile
+            return mb_title
 
     def pretty_table(self):
         """Returns a string of the prettytable"""
