@@ -59,7 +59,6 @@ class Job(db.Model):
     is_iso = db.Column(db.Boolean)
     manual_start = db.Column(db.Boolean)
     manual_mode = db.Column(db.Boolean)
-    has_track_99 = db.Column(db.Boolean)
     tracks = db.relationship('Track', backref='job', lazy='dynamic')
     config = db.relationship('Config', uselist=False, backref="job")
 
