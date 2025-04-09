@@ -191,12 +191,8 @@ def setup():
         msg = f"[{num} of 10] Drive [{drive.mount}] appears to be empty or is not ready. Waiting 1s"
         logging.info(msg)
         time.sleep(1)
-    else:
-        # This should really never trigger now as arm_wrapper should be taking care of this.
-        msg = f"Timed out waiting for drive to be ready (ioctl tray status: {drive.tray})."
-        logging.critical(msg)
-        arm_log.critical(msg)
-        sys.exit()
+    else:  # no break
+        raise Exception(f"Timed out waiting for drive to be ready (ioctl tray status: {drive.tray}).")
 
     # ARM Job starts
     # Create new job
