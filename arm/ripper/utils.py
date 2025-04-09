@@ -121,10 +121,7 @@ def notify_entry(job):
     elif job.disctype == "data":
         notify(job, NOTIFY_TITLE, "Found data disc.  Copying data.")
     else:
-        notify(job, NOTIFY_TITLE, "Could not identify disc.  Exiting.")
-        args = {'status': 'fail', 'errors': "Could not identify disc."}
-        database_updater(args, job)
-        sys.exit()
+        raise RipperException("Could not identify disc")
 
 
 def sleep_check_process(process_str, transcode_limit):
@@ -332,9 +329,9 @@ def get_cdrom_status(devpath):
         disc_check = os.open(devpath, os.O_RDONLY | os.O_NONBLOCK)
     except OSError:
         # Sometimes ARM will log errors opening hard drives. this check should stop it
-        if not re.search(r'hd[a-j]|sd[a-j]|loop\d|nvme\d', devpath):
-            logging.info(f"Failed to open device {devpath} to check status.")
-        sys.exit(2)
+        if re.search(r'hd[a-j]|sd[a-j]|loop\d|nvme\d', devpath):
+            sys.exit(1)
+        raise RipperException(f"Failed to open device {devpath} to check status.")
     result = fcntl.ioctl(disc_check, 0x5326, 0)
 
     return result
@@ -692,8 +689,7 @@ def duplicate_run_check(dev_path):
             # Some (older) devices can take at least 3 minutes to receive the
             # duplicate event, treat two events within 3 minutes as duplicate.
             if mins_last_run <= 3:
-                logging.error(f"Job already running on {dev_path}")
-                sys.exit(1)
+                raise RipperException(f"Job already running on {dev_path}")
 
 
 def save_disc_poster(final_directory, job):
@@ -733,14 +729,7 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
             hb_out_path = hb_out_path + "_" + job.stage
             if not (make_dir(hb_out_path)):
                 # We failed to make a random directory, most likely a permission issue
-                logging.exception(
-                    "A fatal error has occurred and ARM is exiting.  "
-                    "Couldn't create filesystem. Possible permission error")
-                notify(job, NOTIFY_TITLE,
-                       f"ARM encountered a fatal error processing {job.title}."
-                       f" Couldn't create filesystem. Possible permission error. ")
-                database_updater({'status': "fail", 'errors': 'Creating folder failed'}, job)
-                sys.exit()
+                raise RipperException("Failed to create output directory")
         else:
             # We aren't allowed to rip dupes, notify and exit
             logging.info("Duplicate rips are disabled.")
