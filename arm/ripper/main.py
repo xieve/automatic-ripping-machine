@@ -189,10 +189,7 @@ def setup():
 
     # Exit if drive isn't ready
     if utils.get_cdrom_status(devpath) != 4:
-        # This should really never trigger now as arm_wrapper should be taking care of this.
-        logging.critical(f"Drive [{devpath}] appears to be empty or is not ready.  Exiting ARM.")
-        arm_log.critical(f"Drive [{devpath}] appears to be empty or is not ready.  Exiting ARM.")
-        sys.exit()
+        raise Exception(f"Drive [{devpath}] appears to be empty or is not ready")
 
     # ARM Job starts
     # Create new job
