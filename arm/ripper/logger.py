@@ -34,7 +34,7 @@ def setup_job_log(job):
         if job.disctype == "music":
             valid_label = job.identify_audio_cd()
         else:
-            valid_label = "empty"
+            valid_label = "no_label"
     else:
         valid_label = job.label.replace("/", "_")
 
