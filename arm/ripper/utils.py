@@ -834,9 +834,7 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
             notify(job, NOTIFY_TITLE, f"ARM Detected a duplicate disc. For {job.title}. "
                                       f"Duplicate rips are disabled. "
                                       f"You can re-enable them from your config file. ")
-            job.eject()
-            database_updater({'status': JobState.FAILURE.value, 'errors': 'Duplicate rips are disabled'}, job)
-            sys.exit()
+            raise Exception("Duplicate rips are disabled")
     logging.info(f"Final Output directory \"{hb_out_path}\"")
     return hb_out_path
 
