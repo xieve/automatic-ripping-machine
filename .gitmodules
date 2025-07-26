@@ -1,5 +1,5 @@
 [submodule "arm-dependencies"]
 	path = arm-dependencies
-	url = https://github.com/automatic-ripping-machine/arm-dependencies
+	url = https://github.com/xieve/arm-dependencies
 	branch = main
 	update = rebase
