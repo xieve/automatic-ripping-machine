@@ -120,18 +120,18 @@ in
         wants = [ "network-online.target" ];
         after = [ "network-online.target" ];
         wantedBy = [ "multi-user.target" ];
-        confinement = {
-          enable = true;
-          packages =
-            with pkgs;
-            [
-              abcdeFile
-              appriseFile
-              cacert
-              cfgFile
-            ]
-            ++ optional cfg.enableTranscoding handbrake;
-        };
+        # confinement = {
+        #   enable = true;
+        #   packages =
+        #     with pkgs;
+        #     [
+        #       abcdeFile
+        #       appriseFile
+        #       cacert
+        #       cfgFile
+        #     ]
+        #     ++ optional cfg.enableTranscoding handbrake;
+        # };
         environment = {
           SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
         };
@@ -150,6 +150,7 @@ in
             "arm"
             "arm/progress"
           ]; # /var/log/arm
+          DeviceAllow = [ "block-sr rw" ];
           PrivateTmp = true;
         };
       };
