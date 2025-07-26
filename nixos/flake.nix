@@ -31,5 +31,14 @@
         automatic-ripping-machine = import ./module.nix self;
         default = automatic-ripping-machine;
       };
+
+      devShells = forEachSystem (
+        { pkgs }:
+        {
+          default = pkgs.mkShell {
+            inputsFrom = [ self.packages.${pkgs.system}.default ];
+          };
+        }
+      );
     };
 }
