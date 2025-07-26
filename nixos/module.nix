@@ -18,7 +18,7 @@ let
     optionalString
     ;
   inherit (pkgs) writeShellScript;
-  arm = self.packages.${config.nixpkgs.hostPlatform.system}.automatic-ripping-machine;
+  arm = self.packages.${pkgs.system}.automatic-ripping-machine;
   json = pkgs.formats.json { };
   ini = pkgs.formats.iniWithGlobalSection { };
   cfg = config.services.automatic-ripping-machine;
