@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "automatic-ripping-machine"
+dynamic = ["version", "dependencies"]
+
+[tool.setuptools.dynamic]
+version = {file = "VERSION"}
+dependencies = {file = "arm-dependencies/requirements.txt"}
+
+[tool.setuptools.packages.find]
+include = ["arm*"]
+
+[tool.setuptools.package-data]
+arm = ["**/*"]
