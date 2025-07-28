@@ -290,8 +290,7 @@ class Job(db.Model):
             logging.info("Skipping auto eject")
             self.drive.release_current_job()
             return
-        if (error := self.drive.eject(method="eject", logger=logging)) is not None:
-            logging.debug(f"{self.devpath} couldn't be ejected: {error}")
+        self.drive.eject()
         self.ejected = True
 
     @hybrid_property
