@@ -29,6 +29,7 @@ from flask import render_template, request, flash, \
     redirect, Blueprint, session, url_for
 
 import arm.ui.utils as ui_utils
+from arm.ripper.ProcessHandler import arm_subprocess
 from arm.ui import app, db
 from arm.models.job import Job
 from arm.models.system_drives import SystemDrives
@@ -146,26 +147,24 @@ def check_hw_transcode_support():
         "amd": False
     }
     try:
-        hand_brake_output = subprocess.run(f"{cmd}", capture_output=True, shell=True, check=True)
+        hand_brake_output = arm_subprocess(f"{cmd}", shell=True, check=True)
 
         # NVENC
-        if re.search(r'nvenc: version ([0-9\\.]+) is available', str(hand_brake_output.stderr)):
+        if re.search(r'nvenc: version ([0-9\\.]+) is available', str(hand_brake_output)):
             app.logger.info("NVENC supported!")
             hw_support_status["nvidia"] = True
         # Intel QuickSync
-        if re.search(r'qsv:\sis(.*?)available\son', str(hand_brake_output.stderr)):
+        if re.search(r'qsv:\sis(.*?)available\son', str(hand_brake_output)):
             app.logger.info("Intel QuickSync supported!")
             hw_support_status["intel"] = True
         # AMD VCN
-        if re.search(r'vcn:\sis(.*?)available\son', str(hand_brake_output.stderr)):
+        if re.search(r'vcn:\sis(.*?)available\son', str(hand_brake_output)):
             app.logger.info("AMD VCN supported!")
             hw_support_status["amd"] = True
         app.logger.info("Handbrake call successful")
-        # Dump the whole CompletedProcess object
         app.logger.debug(hand_brake_output)
-    except subprocess.CalledProcessError as hb_error:
-        err = f"Call to handbrake failed with code: {hb_error.returncode}({hb_error.output})"
-        app.logger.error(err)
+    except subprocess.CalledProcessError:
+        pass
     return hw_support_status
 
 
@@ -346,7 +345,7 @@ def drive_eject(eject_id):
             flash(f"Job [{drive.job_id_current}] in progress. Cannot eject {eject_id}.", "error")
             return redirect(url_for(REDIRECT_SETTINGS))
     # toggle open/close (with non-critical error)
-    if (error := drive.eject(method="toggle", logger=app.logger)) is not None:
+    if (error := drive.eject(method="toggle")) is not None:
         flash(error, "error")
     return redirect(url_for(REDIRECT_SETTINGS))
 

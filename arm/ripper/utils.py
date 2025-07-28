@@ -21,6 +21,7 @@ import psutil
 from netifaces import interfaces, ifaddresses, AF_INET
 
 import arm.config.config as cfg
+from arm.ripper.ProcessHandler import arm_subprocess
 from arm.ui import db  # needs to be imported before models
 from arm.models.job import Job, JobState
 from arm.models.notifications import Notifications
@@ -84,11 +85,7 @@ def notify(job, title: str, body: str):
 def bash_notify(cfg, title, body):
     # bash notifications use subprocess instead of apprise.
     if cfg['BASH_SCRIPT'] != "":
-        try:
-            subprocess.run(["/usr/bin/bash", cfg['BASH_SCRIPT'], title, body])
-            logging.debug("Sent bash notification successful")
-        except Exception as error:  # noqa: E722
-            logging.error(f"Failed sending notification via bash. Continuing  processing...{error}")
+        arm_subprocess(["/usr/bin/env", "bash", cfg['BASH_SCRIPT'], title, body])
 
 
 def notify_entry(job):
