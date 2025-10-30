@@ -183,3 +183,7 @@ removed/*
 /installed
 
 arm.yaml
+
+.direnv/
+.history/
+.run/
