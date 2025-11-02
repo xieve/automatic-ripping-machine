@@ -74,7 +74,6 @@ sudo chown arm:arm arm.yaml
 sudo mkdir /etc/arm/
 sudo ln -s /opt/arm/arm.yaml /etc/arm/
 sudo chmod +x /opt/arm/scripts/arm_wrapper.sh
-sudo chmod +x /opt/arm/scripts/update_key.sh
 
 cp --no-clobber "/opt/arm/setup/.abcde.conf" "/etc/.abcde.conf"
 chown arm:arm "/etc/.abcde.conf"

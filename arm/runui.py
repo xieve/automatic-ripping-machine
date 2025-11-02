@@ -1,4 +1,6 @@
+#!/usr/bin/env python3
 # pylint: disable=wrong-import-position
+
 """Main run page for armui"""
 import os
 import sys
