@@ -13,10 +13,14 @@ import enum
 import itertools
 import logging
 import os
+import re
 import shlex
 import shutil
 import subprocess
+from pathlib import Path
 from time import sleep
+from urllib.error import URLError
+from urllib.request import Request, urlopen
 
 import arm.config.config as cfg
 from arm.models import SystemDrives, Track
@@ -418,47 +422,6 @@ class MakeMkvParserError(ValueError):
     """Exception raised when the stdout line of makemkvcon cannot get parsed."""
 
 
-class UpdateKeyErrorCodes(enum.IntEnum):
-    """
-    Definition of the defined exit codes of update_key.sh
-    """
-    GENERAL_ERROR = 1
-    PARSE_ERROR = 20
-    """The .MakeMKV/settings.conf file has invalid content."""
-    INTERNAL_ERROR = 30
-    """The script produced an invalid .MakeMKV/settings.conf."""
-    URL_ERROR = 40
-    """This Error is raised if the curl command fails"""
-    INVALID_MAKEMKV_SERIAL = 50
-    """The provided MakeMKV serial should follow a regex M-<serial>."""
-    UNDEFINED_ERROR = 256
-
-    @classmethod
-    def _missing_(cls, value):
-        logging.error(f"An Unknown Error Code happened: {value}")
-        return cls.UNDEFINED_ERROR
-
-
-class UpdateKeyRunTimeError(RuntimeError):
-    """
-    Exception raised when a update_key.sh fails to update the MakeMKV Serial Key.
-
-    Attributes:
-        message: the explanation of the error
-    """
-
-    def __init__(self, returncode, cmd, output=None):
-        if len(cmd) == 3:
-            cmd[2] = cmd[2][:4] + "XXXX"  # don't log the key to cli
-        logging.debug(f"Updating Key with command: '{' '.join(cmd)}'")
-        if output is not None:
-            logging.debug(f"update_key.sh output: {output.splitlines()}")
-        error_code = f"{returncode} {UpdateKeyErrorCodes(returncode).name}"
-        self.message = f"Error updating MakeMKV key, return code: {error_code}"
-        logging.error(self.message)
-        super().__init__(self.message)
-
-
 class MakeMkvRuntimeError(RuntimeError):
     """
     Exception raised when a CalledProcessError is thrown during execution of a
@@ -662,6 +625,7 @@ def makemkv_mkv(job, rawpath):
     # Get drive mode for the current drive
     mode = utils.get_drive_mode(job.devpath)
     logging.info(f"Job running in {mode} mode")
+
     # Get track info form mkv rip
     get_track_info(job.drive.mdisc, job)
     # route to ripping functions.
@@ -715,8 +679,8 @@ def makemkv(job):
     Returns:
         str: path to ripped files.
     """
-    # confirm MKV is working, beta key hasn't expired
-    prep_mkv()
+    update_key()
+
     logging.info(f"Starting MakeMKV rip. Method is {job.config.RIPMETHOD}")
     # get MakeMKV disc number
     # Fix: Check if job.drive is None before accessing job.drive.mdisc
@@ -866,29 +830,51 @@ def setup_rawpath(job, raw_path):
     return raw_path
 
 
-def prep_mkv():
+def update_key() -> None:
     """
-    Make sure the MakeMKV key is up-to-date
-
-    Raises:
-        UpdateKeyRunTimeError
+    Write MakeMKV key to ~/.MakeMKV/settings.conf. Will use perpetual key if provided through the
+    config, otherwise it will scrape the latest beta key from the forum.
     """
     try:
-        logging.info("Updating MakeMKV key...")
-        cmd = [
-            shutil.which("bash") or "/bin/bash",
-            os.path.join(cfg.arm_config["INSTALLPATH"], "scripts/update_key.sh"),
-        ]
-        # if MAKEMKV_PERMA_KEY is populated
-        if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
-            logging.debug("MAKEMKV_PERMA_KEY populated, using that...")
-            # add MAKEMKV_PERMA_KEY as an argument to the command
-            cmd += [cfg.arm_config['MAKEMKV_PERMA_KEY']]
-        proc = subprocess.run(cmd, capture_output=True, check=True)
-        stdout = proc.stdout.decode("utf-8")
-        logging.debug(f"Command Output for update_key.sh: {stdout.splitlines()}")
-    except subprocess.CalledProcessError as err:
-        raise UpdateKeyRunTimeError(err.returncode, cmd, output=err.stdout.decode("utf-8"))
+        key_pattern = r"T-[\w\d@]{66}"
+        if key := cfg.arm_config["MAKEMKV_PERMA_KEY"]:
+            logging.info("Setting perpetual license key for MakeMKV...")
+        else:
+            logging.info("Fetching latest MakeMKV beta key...")
+            key = re.search(
+                key_pattern,
+                urlopen(Request(
+                    url="https://forum.makemkv.com/forum/viewtopic.php?f=5&t=1053",
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36"
+                    }
+                )).read().decode("utf-8")
+            )[0]
+            logging.debug(f"Using beta key {key}")
+        key = f'app_Key = "{key}"\n'
+
+        settings_path = Path(os.path.expanduser("~/.MakeMKV/settings.conf")).resolve()
+        os.makedirs(settings_path.parent, mode=0o775, exist_ok=True)
+        if settings_path.exists():
+            with (open(settings_path, "r+") as settings_file):
+                settings_file.seek(0)
+                settings_file.writelines(
+                    (
+                        line
+                        for line in settings_file
+                        if not re.match(r"app_Key\s*=", line)
+                    ),
+                )
+                settings_file.write(key)
+                settings_file.truncate()
+        else:
+            with open(settings_path, "w") as settings_file:
+                settings_file.write(key)
+
+        logging.info("MakeMKV key has been set.")
+
+    except (UnicodeDecodeError, URLError, OSError, IndexError) as e:
+        logging.error(f"Failed to update MakeMKV Key: {e}")
 
 
 def progress_log(job):
