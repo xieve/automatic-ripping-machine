@@ -1,0 +1,45 @@
+{
+  "nodes": {
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1770019141,
+        "narHash": "sha256-VKS4ZLNx4PNrABoB0L8KUpc1fE7CLpQXQs985tGfaCU=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "cb369ef2efd432b3cdf8622b0ffc0a97a02f3137",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "pydvdid": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1516844103,
+        "narHash": "sha256-PuhkXu62bc/9n2swaKe/O759xCyJ3LrHCJISbWzSUtk=",
+        "owner": "sjwood",
+        "repo": "pydvdid",
+        "rev": "03914fb7e24283c445e5af724f9d919b23caaf95",
+        "type": "github"
+      },
+      "original": {
+        "owner": "sjwood",
+        "ref": "v1.1",
+        "repo": "pydvdid",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "nixpkgs": "nixpkgs",
+        "pydvdid": "pydvdid"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
