@@ -60,15 +60,8 @@ def rip_visual_media(have_dupes, job, logfile, protection):
         try:
             makemkv_out_path = makemkv.makemkv(job)
         except Exception as mkv_error:  # noqa: E722
-            logging.error(f"MakeMKV did not complete successfully.  Exiting ARM! "
-                          f"Error: {mkv_error}")
-            raise ValueError from mkv_error
+            raise utils.RipperException("Error while running MakeMKV") from mkv_error
 
-        if makemkv_out_path is None:
-            logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
-            job.status = JobState.FAILURE.value
-            db.session.commit()
-            raise ValueError("MakeMKV output path is None. Job failed.")
         if job.config.NOTIFY_RIP:
             utils.notify(job, constants.NOTIFY_TITLE, f"{job.title} rip complete. Starting transcode. ")
         logging.info("************* Ripping with MakeMKV completed *************")
