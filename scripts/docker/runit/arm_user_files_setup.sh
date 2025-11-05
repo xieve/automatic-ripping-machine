@@ -53,7 +53,7 @@ echo "Adding arm user to 'render' group"
 usermod -a -G render arm
 
 ### Setup Files
-chown -R arm:arm /opt/arm
+chown -R $ARM_UID:$ARM_GID /opt/arm
 
 # Check ownership of the ARM home folder
 check_folder_ownership "/home/arm"
@@ -66,7 +66,7 @@ for dir in $SUBDIRS ; do
     echo "Creating dir: $thisDir"
     mkdir -p "$thisDir"
     # Set the default ownership to arm instead of root
-    chown -R arm:arm "$thisDir"
+    chown -R $ARM_UID:$ARM_GID "$thisDir"
   fi
 done
 
