@@ -8,12 +8,20 @@ self:
 let
   inherit (lib)
     getExe
+    getExe'
+    join
     mkDefault
     mkEnableOption
     mkIf
     mkOption
     mkPackageOption
     optionalString
+    ;
+  inherit (pkgs)
+    writeShellScript
+    lsscsi
+    systemd
+    gnugrep
     ;
   arm = self.packages.${pkgs.system}.automatic-ripping-machine;
   json = pkgs.formats.json { };
@@ -108,7 +116,45 @@ in
       groups.${cfg.group} = { };
     };
 
-    services.udev.packages = [ arm ];
+    services.udev.packages =
+      let
+        ripperScript = pkgs.writeShellScript "automatic-ripping-machine.zsh" ''
+          PROPERTIES=(
+            User=arm
+            Wants=modprobe@sg.service
+            ProtectSystem=strict
+            ProtectHome=true
+            StateDirectory=arm
+            LogsDirectory=arm
+            RuntimeDirectory=arm
+            ReadWritePaths='${join " " BindPaths}'
+            DeviceAllow="/dev/$KERNEL r"
+            PrivateTmp=true
+          )
+
+          SCSI=($(${getExe' lsscsi "lsscsi"} --brief --generic | ${getExe gnugrep} "/dev/$KERNEL"))
+          SG_PATH="''${SCSI[2]}"
+          if [ "$SG_PATH" != "-" ]; then
+            PROPERTIES+="DeviceAllow=$SG_PATH rw"
+          fi
+
+          declare -a ARGS
+          for PROPERTY in "''${PROPERTIES[@]}"; do
+            ARGS+=( -p "$PROPERTY" )
+          done
+
+          systemd-run \
+            ''${ARGS[@]} \
+            ${getExe' arm "arm"} --no-syslog --devpath "$KERNEL"
+        '';
+      in
+      [
+        (pkgs.writeTextDir "lib/udev/rules.d/80-automatic-ripping-machine.rules" (
+          ''ACTION=="change", ENV{ID_CDROM_MEDIA}=="1", ''
+          + ''RUN{program}+="${getExe' systemd "systemd-mount"} --no-block --automount=yes --collect $devnode /run/arm$devnode", ''
+          + ''RUN{program}+="${getExe' systemd "systemd-run"} ${ripperScript}"''
+        ))
+      ];
 
     systemd = {
       services.armui = {
@@ -163,6 +209,7 @@ in
         environment = {
           inherit ARM_CONFIG_FILE;
         };
+        restartIfChanged = false;
         # confinement.enable = true;
         serviceConfig = {
           User = "arm";
