@@ -2,6 +2,8 @@
 """yaml config loader"""
 import json
 import os
+import re
+
 import yaml
 
 import arm.config.config_utils as config_utils
@@ -70,6 +72,13 @@ try:
         settings_file.close()
 except OSError:
     pass
+
+# Load secrets (TODO: make sure they are not written to arm.yaml when it is writable)
+pattern = r"ARM_(.*)_FILE"
+for name, value in os.environ.items():
+    if (match := re.match(pattern, name)) and match[1] in arm_config.keys():
+        with open(value) as f:
+            arm_config[match[1]] = f.read()
 
 # abcde config file, open and read contents
 abcde_config_path = arm_config["ABCDE_CONFIG_FILE"]
