@@ -18,10 +18,10 @@ let
     optionalString
     ;
   inherit (pkgs)
-    writeShellScript
+    writeScript
+    python3
     lsscsi
     systemd
-    gnugrep
     ;
   arm = self.packages.${pkgs.system}.automatic-ripping-machine;
   json = pkgs.formats.json { };
@@ -118,41 +118,55 @@ in
 
     services.udev.packages =
       let
-        ripperScript = pkgs.writeShellScript "automatic-ripping-machine.zsh" ''
-          PROPERTIES=(
-            User=arm
-            Wants=modprobe@sg.service
-            ProtectSystem=strict
-            ProtectHome=true
-            StateDirectory=arm
-            LogsDirectory=arm
-            RuntimeDirectory=arm
-            ReadWritePaths='${join " " BindPaths}'
-            DeviceAllow="/dev/$KERNEL r"
-            PrivateTmp=true
-          )
+        ripperScript = writeScript "automatic-ripping-machine.py" ''
+          #!${getExe (python3.withPackages (ps: with ps; [pystemd]))}
+          import random
+          import re
+          import string
+          import subprocess
+          from functools import partial
+          from os import environ
 
-          SCSI=($(${getExe' lsscsi "lsscsi"} --brief --generic | ${getExe gnugrep} "/dev/$KERNEL"))
-          SG_PATH="''${SCSI[2]}"
-          if [ "$SG_PATH" != "-" ]; then
-            PROPERTIES+="DeviceAllow=$SG_PATH rw"
-          fi
+          from pystemd.systemd1 import Manager
 
-          declare -a ARGS
-          for PROPERTY in "''${PROPERTIES[@]}"; do
-            ARGS+=( -p "$PROPERTY" )
-          done
+          run = partial(subprocess.run, capture_output=True, text=True, check=True)
+          device_name = environ["KERNEL"]
 
-          systemd-run \
-            ''${ARGS[@]} \
-            ${getExe' arm "arm"} --no-syslog --devpath "$KERNEL"
+          random_string = '''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+          unit_name = f"arm-{environ["ID_FS_LABEL"]}-{random_string}"
+          properties = {
+            "Description": "Automatic Ripping Machine Worker",
+            "User": "arm",
+            "Wants": "modprobe@sg.service",
+            "ProtectSystem": "strict",
+            "ProtectHome": true,
+            "StateDirectory": "arm",
+            "LogsDirectory": "arm",
+            "RuntimeDirectory": "arm",
+            "ReadWritePaths": "${join " " BindPaths}",
+            "DeviceAllow": [f"/dev/{device_name} r"],
+            "PrivateTmp": true,
+          }
+
+          lsscsi_output = run(["${getExe' lsscsi "lsscsi"}", "--brief", "--generic"]).stdout
+
+          match = re.search(fr"\S+\s+/dev/{device_name}\s+(\S+)", lsscsi_output)
+          if match is None:
+            raise Exception("Could not find device in lsscsi output. This should *never* happen.")
+
+          sg_path = match.groups(0)
+          if sg_path != "-":
+            properties["DeviceAllow"].append(f"{sg_path} rw")
+
+          with Manager() as manager:
+            manager.Manager.StartTransientUnit(unit_name, "fail", properties)
         '';
       in
       [
         (pkgs.writeTextDir "lib/udev/rules.d/80-automatic-ripping-machine.rules" (
           ''ACTION=="change", ENV{ID_CDROM_MEDIA}=="1", ''
           + ''RUN{program}+="${getExe' systemd "systemd-mount"} --no-block --automount=yes --collect $devnode /run/arm$devnode", ''
-          + ''RUN{program}+="${getExe' systemd "systemd-run"} ${ripperScript}"''
+          + ''RUN{program}+="${getExe' systemd "systemd-run"} -E KERNEL -E ID_FS_LABEL ${ripperScript}"''
         ))
       ];
 
