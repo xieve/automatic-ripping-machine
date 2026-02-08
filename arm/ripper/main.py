@@ -5,22 +5,17 @@ The main runner for Automatic Ripping Machine
 For help please visit https://github.com/automatic-ripping-machine/automatic-ripping-machine
 """
 import argparse  # noqa: E402
-import getpass  # noqa E402
 import logging  # noqa: E402
-import logging.handlers  # noqa: E402
-import os  # noqa: E402
 import sys
 import time  # noqa: E402
 import datetime  # noqa: E402
 import re  # noqa: E402
-import getpass  # noqa E402
 from argparse import Namespace
 from importlib.util import find_spec
 from pathlib import Path
 from signal import signal, SIGTERM
 from typing import Optional
 
-import psutil  # noqa E402
 import pyudev  # noqa: E402
 
 # If the arm module can't be found, add the folder this file is in to PYTHONPATH
@@ -181,7 +176,6 @@ def setup():
 
     # With some drives and some disks, there is a race condition between creating the Job()
     # below and the drive being ready, so give it a chance to get ready (observed with LG SP80NB80)
-    ready_count = 1
     for num in range(1, 11):
         drive.tray_status()
         if drive.ready:
@@ -226,9 +220,6 @@ def setup():
         job.manual_mode = False
         db.session.commit()
     utils.database_adder(config)
-    # Log version number
-    with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
-        version = version_file.read().strip()
 
     try:
         # Delete old log files

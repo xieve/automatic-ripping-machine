@@ -2,9 +2,7 @@
 """Collection of utility functions"""
 import datetime
 import os
-import sys
 import logging
-import logging.handlers
 import subprocess
 import shutil
 import time
