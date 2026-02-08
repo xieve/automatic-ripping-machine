@@ -5,10 +5,10 @@ Function definition
 
 import logging
 import subprocess
-from typing import Optional, List
+from typing import Optional, List, Union
 
 
-def arm_subprocess(cmd: str | List[str], shell=False, check=False) -> Optional[str]:
+def arm_subprocess(cmd: Union[str, List[str]], shell=False, check=False) -> Optional[str]:
     """
     Spawn blocking subprocess
 
@@ -30,7 +30,9 @@ def arm_subprocess(cmd: str | List[str], shell=False, check=False) -> Optional[s
             encoding="utf-8"
         )
     except (subprocess.CalledProcessError, OSError) as error:
-        decoded_output = error.output.strip()
+        decoded_output: Optional[str] = None
+        if isinstance(error, subprocess.CalledProcessError):
+            decoded_output = error.output.strip()
         logging.error(
             f"Error while running command: {cmd}\n"
             + (
