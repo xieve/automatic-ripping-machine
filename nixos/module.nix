@@ -163,6 +163,7 @@ in
         environment = {
           inherit ARM_CONFIG_FILE;
         };
+        restartIfChanged = false;
         # confinement.enable = true;
         serviceConfig = {
           User = "arm";
