@@ -183,6 +183,8 @@ in
           # DeviceAllow = [ "/dev/%I rw" ]; #"block-sr rw";
           # BindPaths = BindPaths ++ [ "/dev/%I" ];
           PrivateTmp = true;
+          # De-prioritize ripper (esp. transcoding) to keep the rest of the system responsive
+          CPUWeight = 10;
         };
       };
     };
