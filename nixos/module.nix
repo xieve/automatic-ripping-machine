@@ -111,6 +111,7 @@ in
     services.udev.packages = [ arm ];
 
     systemd = {
+      services."modprobe@".path = [ pkgs.kmod ];
       services.armui = {
         description = "Automatic Ripping Machine Web UI";
         wants = [ "network-online.target" ];
