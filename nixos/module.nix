@@ -15,7 +15,6 @@ let
     mkPackageOption
     optionalString
     ;
-  arm = self.packages.${pkgs.system}.automatic-ripping-machine;
   json = pkgs.formats.json { };
   ini = pkgs.formats.iniWithGlobalSection { };
   cfg = config.services.automatic-ripping-machine;
@@ -53,6 +52,8 @@ in
     };
 
     handbrakePackage = mkPackageOption pkgs "handbrake" { };
+
+    package = mkPackageOption self.packages.${pkgs.system} "automatic-ripping-machine" { };
 
     settings = mkOption {
       description = "Settings for ARM. Will be used to generate arm.yaml.";
@@ -92,7 +93,7 @@ in
         HANDBRAKE_LOCAL = HANDBRAKE_CLI;
         DBFILE = "/var/lib/arm/arm.db";
         LOGPATH = "/var/log/arm/";
-        INSTALLPATH = "${arm}/lib/arm/";
+        INSTALLPATH = "${cfg.package}/lib/arm/";
         SKIP_TRANSCODE = !cfg.enableTranscoding;
         ABCDE_CONFIG_FILE = abcdeFile;
         APPRISE = mkIf (cfg.appriseSettings != { }) appriseFile;
@@ -108,7 +109,7 @@ in
       groups.${cfg.group} = { };
     };
 
-    services.udev.packages = [ arm ];
+    services.udev.packages = [ cfg.package ];
 
     systemd = {
       services.armui = {
@@ -138,7 +139,7 @@ in
           User = "arm";
           Restart = "always";
           RestartSec = "3";
-          ExecStart = "${arm}/bin/armui";
+          ExecStart = "${cfg.package}/bin/armui";
           ProtectHome = true;
           ProtectSystem = "strict"; # Enforce read-only access for the entire system except for:
           StateDirectory = "arm"; # /var/lib/arm
@@ -168,7 +169,7 @@ in
         serviceConfig = {
           User = "arm";
           ExecStart = ''
-            ${arm}/bin/arm --no-syslog --devpath "%I"
+            ${cfg.package}/bin/arm --no-syslog --devpath "%I"
           '';
           ProtectSystem = "strict";
           ProtectHome = true;
