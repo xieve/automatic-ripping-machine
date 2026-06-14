@@ -59,7 +59,37 @@ python3Packages.buildPythonApplication {
     }"
   ];
 
+  pythonRelaxDeps = [
+    "alembic"
+    "apprise"
+    "bcrypt"
+    "discid"
+    "flask"
+    "flask-cors"
+    "flask-login"
+    "flask-migrate"
+    "flask-wtf"
+    "greenlet"
+    "idna"
+    "itsdangerous"
+    "jinja2"
+    "mako"
+    "markdown"
+    "markupsafe"
+    "prettytable"
+    "psutil"
+    "pyyaml"
+    "requests"
+    "sqlalchemy"
+    "urllib3"
+    "waitress"
+    "werkzeug"
+    "wtforms"
+    "xmltodict"
+  ];
+
   dependencies = with python3Packages; [
+    pythonRelaxDepsHook
     psutil
     pyudev
     alembic
