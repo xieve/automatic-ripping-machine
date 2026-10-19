@@ -181,6 +181,16 @@ in
           DeviceAllow = [
             "char-sg rw"
             "/dev/%I r"
+            # Hardware transcoding: HandBrake and ffmpeg open the DRM
+            # (Direct Rendering Manager) device nodes for VAAPI. The
+            # character major for /dev/dri is registered under the group
+            # name "drm" on current kernels (226 drm in /proc/devices);
+            # older kernels called it "dri". DeviceAllow is an allow-list,
+            # so an unresolvable name does not widen it, and whatever name
+            # the kernel did not choose stays denied: name both and let
+            # systemd carry the one that resolves.
+            "char-dri rw"
+            "char-drm rw"
           ];
           # DeviceAllow = [ "/dev/%I rw" ]; #"block-sr rw";
           # BindPaths = BindPaths ++ [ "/dev/%I" ];
