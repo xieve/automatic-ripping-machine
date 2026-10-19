@@ -158,9 +158,22 @@ in
         # Needed for some (?) BluRay drives
         wants = [ "modprobe@sg.service" ];
         after = [ "modprobe@sg.service" ];
-        path = [
-          pkgs.makemkv
-        ];
+        path =
+          [
+            # The default system PATH including /run/wrappers/bin is
+            # replaced by setting `path', so the setuid `mount' must be
+            # listed again: the ripper mounts the disc for identification
+            # (`mount --source /dev/sr0' against an fstab entry), and the
+            # store util-linux `mount' is not setuid.
+            "/run/wrappers/bin"
+            # Poster ripping for rips without a disc.
+            pkgs.ffmpeg-headless
+            pkgs.makemkv
+            # Music CD ripping and encoding; abcde is not on the package
+            # wrapper's PATH, so it must come from the unit.
+            pkgs.abcde
+          ]
+          ++ lib.optionals cfg.enableTranscoding [ cfg.handbrakePackage ];
         environment = {
           inherit ARM_CONFIG_FILE;
         };
