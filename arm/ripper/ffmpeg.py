@@ -2,6 +2,7 @@
 """FFMPEG processing of dvd/blu-ray"""
 
 import os
+import collections
 import logging
 import subprocess
 import shlex
@@ -500,7 +501,13 @@ def run_transcode_cmd(src_file, out_file, job, ff_pre_args="", ff_post_args=""):
     process = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                universal_newlines=True, bufsize=1)
 
+    # Keep the tail of the output so a failure can be reported at error
+    # level instead of being swallowed by the debug-only lines above; the
+    # real cause otherwise never reaches the ARM log.
+    output_tail = collections.deque(maxlen=20)
+
     for line in process.stdout:  # type: ignore
+        output_tail.append(line)
         if logging.getLogger().isEnabledFor(logging.DEBUG):
             logging.debug(line.strip())
             if total_duration > 0 and "out_time_us" in line:
@@ -532,4 +539,5 @@ def run_transcode_cmd(src_file, out_file, job, ff_pre_args="", ff_post_args=""):
     process.wait()
 
     if process.returncode != 0:
-        raise subprocess.CalledProcessError(process.returncode, cmd)
+        logging.error("FFmpeg tail:\n" + "".join(output_tail))
+        raise subprocess.CalledProcessError(process.returncode, cmd, "".join(output_tail))
